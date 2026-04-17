@@ -1,5 +1,7 @@
 import sitemap from "@astrojs/sitemap";
-import svelte from "@astrojs/svelte";
+import vue from "@astrojs/vue";
+// Deleted:import svelte from "@astrojs/svelte";
+import mdx from "@astrojs/mdx";
 import tailwind from "@astrojs/tailwind";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
@@ -8,10 +10,10 @@ import expressiveCode from "astro-expressive-code";
 import icon from "astro-icon";
 import { defineConfig } from "astro/config";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeComponents from "rehype-components"; /* Render the custom directive content */
+import rehypeComponents from "rehype-components";
 import rehypeKatex from "rehype-katex";
 import rehypeSlug from "rehype-slug";
-import remarkDirective from "remark-directive"; /* Handle directives */
+import remarkDirective from "remark-directive";
 import remarkGithubAdmonitionsToDirectives from "remark-github-admonitions-to-directives";
 import remarkMath from "remark-math";
 import remarkSectionize from "remark-sectionize";
@@ -24,7 +26,6 @@ import { remarkExcerpt } from "./src/plugins/remark-excerpt.js";
 import { remarkReadingTime } from "./src/plugins/remark-reading-time.mjs";
 import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-copy-button.js";
 
-// https://astro.build/config
 export default defineConfig({
 	site: "https://fuwari.vercel.app/",
 	base: "/",
@@ -35,9 +36,7 @@ export default defineConfig({
 		}),
 		swup({
 			theme: false,
-			animationClass: "transition-swup-", // see https://swup.js.org/options/#animationselector
-			// the default value `transition-` cause transition delay
-			// when the Tailwind class `transition-all` is used
+			animationClass: "transition-swup-",
 			containers: ["main", "#toc"],
 			smoothScrolling: true,
 			cache: true,
@@ -49,10 +48,10 @@ export default defineConfig({
 		}),
 		icon({
 			include: {
-				"preprocess: vitePreprocess(),": ["*"],
 				"fa6-brands": ["*"],
 				"fa6-regular": ["*"],
 				"fa6-solid": ["*"],
+				"material-symbols": ["*"],
 			},
 		}),
 		expressiveCode({
@@ -99,10 +98,33 @@ export default defineConfig({
 				showCopyToClipboardButton: false,
 			}
 		}),
-        svelte(),
+        vue(),
+		// Deleted:svelte(),
+		mdx(),
 		sitemap(),
 	],
 	markdown: {
+		shikiConfig: {
+			theme: 'github-dark',
+			wrap: true,
+			langs: [
+				'typescript',
+				'javascript',
+				'python',
+				'java',
+				'cpp',
+				'go',
+				'rust',
+				'sql',
+				'html',
+				'css',
+				'json',
+				'yaml',
+				'markdown',
+				'bash',
+				'powershell',
+			],
+		},
 		remarkPlugins: [
 			remarkMath,
 			remarkReadingTime,
@@ -157,7 +179,6 @@ export default defineConfig({
 		build: {
 			rollupOptions: {
 				onwarn(warning, warn) {
-					// temporarily suppress this warning
 					if (
 						warning.message.includes("is dynamically imported by") &&
 						warning.message.includes("but also statically imported by")

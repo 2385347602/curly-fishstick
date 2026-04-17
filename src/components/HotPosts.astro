@@ -1,0 +1,136 @@
+---
+interface HotPost {
+	url: string;
+	title: string;
+	visitors: number;
+}
+
+// 从 Umami API 获取热门文章数据
+async function getHotPosts(): Promise<HotPost[]> {
+	const umamiApiUrl = import.meta.env.PUBLIC_UMAMI_API_URL || 'https://cloud.umami.is';
+	const websiteId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID;
+	const umamiAuth = import.meta.env.UMAMI_AUTH_TOKEN;
+
+	if (!websiteId || !umamiAuth) {
+		console.warn('Umami credentials not configured');
+		return [];
+	}
+
+	try {
+		// 获取最近 30 天的统计数据
+		const startDate = new Date();
+		startDate.setDate(startDate.getDate() - 30);
+
+		const response = await fetch(
+			`${umamiApiUrl}/api/websites/${websiteId}/stats?startAt=${startDate.getTime()}&endAt=${Date.now()}`,
+			{
+				headers: {
+					'Authorization': `Bearer ${umamiAuth}`,
+				},
+			}
+		);
+
+		if (!response.ok) {
+			throw new Error(`Umami API error: ${response.status}`);
+		}
+
+		const data = await response.json();
+
+		// 获取页面浏览量统计
+		const pagesResponse = await fetch(
+			`${umamiApiUrl}/api/websites/${websiteId}/pages?startAt=${startDate.getTime()}&endAt=${Date.now()}&limit=10`,
+			{
+				headers: {
+					'Authorization': `Bearer ${umamiAuth}`,
+				},
+			}
+		);
+
+		if (!pagesResponse.ok) {
+			return [];
+		}
+
+		const pages = await pagesResponse.json();
+
+		// 转换为 HotPost 格式
+		return pages.map((page: any) => ({
+			url: page.x, // 页面路径
+			title: extractTitleFromUrl(page.x), // 从 URL 提取标题
+			visitors: page.y, // 访问量
+		})).slice(0, 10); // 取前 10 名
+
+	} catch (error) {
+		console.error('Failed to fetch hot posts:', error);
+		return [];
+	}
+}
+
+// 从 URL 路径提取文章标题
+function extractTitleFromUrl(url: string): string {
+	// 例如：/posts/my-first-post -> My First Post
+	const match = url.match(/\/posts\/(.+)$/);
+	if (!match) return 'Unknown';
+
+	return match[1]
+		.split('-')
+		.map(word => word.charAt(0).toUpperCase() + word.slice(1))
+		.join(' ');
+}
+
+// 在构建时获取数据
+const hotPosts = await getHotPosts();
+---
+
+<div class="my-8">
+	<h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+		<svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+			<path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/>
+		</svg>
+		热门文章
+	</h3>
+
+	{hotPosts.length > 0 ? (
+		<ul class="space-y-2">
+			{hotPosts.map((post, index) => (
+				<li>
+					<a
+						href={post.url}
+						class="group flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+					>
+						<!-- 排名徽章 -->
+						<span
+							class={[
+								'flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold',
+								index === 0 ? 'bg-yellow-500 text-white' :
+								index === 1 ? 'bg-gray-400 text-white' :
+								index === 2 ? 'bg-amber-600 text-white' :
+								'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+							].join(' ')}
+						>
+							{index + 1}
+						</span>
+
+						<!-- 文章信息 -->
+						<div class="flex-1 min-w-0">
+							<h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+								{post.title}
+							</h4>
+							<p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+								{post.visitors} 次阅读
+							</p>
+						</div>
+
+						<!-- 箭头图标 -->
+						<svg class="w-4 h-4 text-gray-400 group-hover:text-indigo-500 transition-colors flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+						</svg>
+					</a>
+				</li>
+			))}
+		</ul>
+	) : (
+		<div class="text-center py-8 text-gray-400 dark:text-gray-600">
+			<p class="text-sm">暂无数据</p>
+		</div>
+	)}
+</div>

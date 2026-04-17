@@ -1,0 +1,191 @@
+---
+import "../styles/main.css";
+import SEO from "@components/SEO.astro";
+import LightDarkSwitch from "@components/LightDarkSwitch.vue";
+import DynamicBackground from "@components/DynamicBackground.vue";
+import PageProgressBar from "@components/PageProgressBar.vue";
+import Search from "@components/Search.vue";
+import { profileConfig, siteConfig } from "@/config";
+import { DEFAULT_THEME, LIGHT_MODE, DARK_MODE, AUTO_MODE } from "@/constants/constants";
+import type { Favicon } from "@/types/config";
+import { defaultFavicons } from "@/constants/icon";
+import { url } from "@/utils/url-utils";
+
+interface Props {
+	title?: string;
+	description?: string;
+	lang?: string;
+	setOGTypeArticle?: boolean;
+	enableDynamicBg?: boolean;
+}
+
+const {
+	title,
+	description,
+	lang = siteConfig.lang,
+	setOGTypeArticle = false,
+	enableDynamicBg = false
+} = Astro.props;
+
+const pageTitle = title ? `${title} - ${siteConfig.title}` : `${siteConfig.title} - ${siteConfig.subtitle}`;
+const pageDescription = description || pageTitle;
+const pageLang = lang.replace("_", "-");
+
+const favicons: Favicon[] = siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
+
+const umamiWebsiteId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID || '';
+---
+
+<!DOCTYPE html>
+<html
+	lang={pageLang}
+	class="scroll-smooth transition-colors duration-300"
+	data-theme="light"
+>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+		<SEO
+			title={pageTitle}
+			description={pageDescription}
+			url={Astro.url}
+			setOGTypeArticle={setOGTypeArticle}
+		/>
+
+		{favicons.map(favicon => (
+			<link
+				rel="icon"
+				href={favicon.src.startsWith('/') ? url(favicon.src) : favicon.src}
+				sizes={favicon.sizes}
+				media={favicon.theme && `(prefers-color-scheme: ${favicon.theme})`}
+			/>
+		))}
+
+		<script is:inline define:vars={{ DEFAULT_THEME, LIGHT_MODE, DARK_MODE, AUTO_MODE }}>
+			(function() {
+				const theme = localStorage.getItem('theme') || DEFAULT_THEME;
+				const html = document.documentElement;
+
+				function applyTheme(t) {
+					if (t === LIGHT_MODE) {
+						html.classList.remove('dark');
+						html.setAttribute('data-theme', 'light');
+					} else if (t === DARK_MODE) {
+						html.classList.add('dark');
+						html.setAttribute('data-theme', 'dark');
+					} else if (t === AUTO_MODE) {
+						const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+						if (prefersDark) {
+							html.classList.add('dark');
+							html.setAttribute('data-theme', 'dark');
+						} else {
+							html.classList.remove('dark');
+							html.setAttribute('data-theme', 'light');
+						}
+					}
+				}
+
+				applyTheme(theme);
+
+				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+					const currentTheme = localStorage.getItem('theme') || DEFAULT_THEME;
+					if (currentTheme === AUTO_MODE) {
+						applyTheme(AUTO_MODE);
+					}
+				});
+			})();
+		</script>
+
+		<script is:inline src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+
+		<meta name="view-transition" content="same-origin" />
+
+		<title>{pageTitle}</title>
+
+		{umamiWebsiteId && (
+			<script
+				is:inline
+				defer
+				src="https://cloud.umami.is/script.js"
+				data-website-id={umamiWebsiteId}
+			></script>
+		)}
+	</head>
+
+	<body class="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased">
+		<PageProgressBar client:only="vue" />
+
+		<Search client:load />
+
+		{enableDynamicBg && (
+			<div id="dynamic-bg-container" class="fixed inset-0 -z-10">
+				<DynamicBackground client:load />
+			</div>
+		)}
+
+		<main id="main-content" class="transition-opacity duration-300">
+			<slot />
+		</main>
+
+		<div class="fixed bottom-6 right-6 z-50">
+			<LightDarkSwitch client:load />
+		</div>
+	</body>
+</html>
+
+<style is:global>
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation-duration: 0.3s;
+		animation-timing-function: ease-in-out;
+	}
+
+	@keyframes fade-in {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+
+	@keyframes fade-out {
+		from { opacity: 1; }
+		to { opacity: 0; }
+	}
+
+	::view-transition-old(root) {
+		animation-name: fade-out;
+	}
+
+	::view-transition-new(root) {
+		animation-name: fade-in;
+	}
+
+	html {
+		scroll-behavior: smooth;
+	}
+
+	::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: rgb(156 163 175 / 0.5);
+		border-radius: 4px;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		background: rgb(156 163 175 / 0.7);
+	}
+
+	.dark ::-webkit-scrollbar-thumb {
+		background: rgb(75 85 99 / 0.5);
+	}
+
+	.dark ::-webkit-scrollbar-thumb:hover {
+		background: rgb(75 85 99 / 0.7);
+	}
+</style>

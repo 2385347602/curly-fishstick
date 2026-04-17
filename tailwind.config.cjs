@@ -1,14 +1,25 @@
 /** @type {import('tailwindcss').Config} */
-const defaultTheme = require("tailwindcss/defaultTheme")
 module.exports = {
-  content: ["./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue,mjs}"],
-  darkMode: "class", // allows toggling dark mode manually
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ["Roboto", "sans-serif", ...defaultTheme.fontFamily.sans],
-      },
-    },
-  },
-  plugins: [require("@tailwindcss/typography")],
-}
+	content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
+	darkMode: 'class',
+	theme: {
+		extend: {
+			animation: {
+				'breathe': 'breathe 2s ease-in-out infinite',
+				'spin-slow': 'spin 8s linear infinite',
+			},
+			keyframes: {
+				breathe: {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-4px)' },
+				}
+			},
+			backdropBlur: {
+				xs: '2px',
+			},
+		},
+	},
+	plugins: [
+		require('@tailwindcss/typography'),
+	],
+};

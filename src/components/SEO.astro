@@ -1,0 +1,106 @@
+---
+interface Props {
+	title: string;
+	description: string;
+	url: URL;
+	image?: string;
+	keywords?: string[];
+	setOGTypeArticle?: boolean;
+	publishedTime?: string;
+	modifiedTime?: string;
+	author?: string;
+}
+
+const {
+	title,
+	description,
+	url,
+	image,
+	keywords = [],
+	setOGTypeArticle = false,
+	publishedTime,
+	modifiedTime,
+	author = "皇朝洋"
+} = Astro.props;
+
+const siteName = "皇朝洋的博客";
+const canonicalUrl = url.toString();
+const ogImage = image || "/og-image.png";
+---
+
+<!-- 基础 Meta 标签 -->
+<meta name="title" content={title} />
+<meta name="description" content={description} />
+{keywords.length > 0 && <meta name="keywords" content={keywords.join(", ")} />}
+<meta name="author" content={author} />
+<meta name="robots" content="index, follow" />
+<meta name="googlebot" content="index, follow" />
+
+<!-- Canonical URL -->
+<link rel="canonical" href={canonicalUrl} />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content={setOGTypeArticle ? "article" : "website"} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:locale" content="zh_CN" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:url" content={canonicalUrl} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+
+<!-- 文章特定的 Meta 标签 -->
+{setOGTypeArticle && publishedTime && (
+	<>
+		<meta property="article:published_time" content={publishedTime} />
+		{modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
+		<meta property="article:author" content={author} />
+		{keywords.map(keyword => (
+			<meta property="article:tag" content={keyword} />
+		))}
+	</>
+)}
+
+<!-- JSON-LD 结构化数据 -->
+<script type="application/ld+json" set:html={JSON.stringify(
+	setOGTypeArticle
+		? {
+			"@context": "https://schema.org",
+			"@type": "BlogPosting",
+			headline: title,
+			description: description,
+			image: ogImage,
+			author: {
+				"@type": "Person",
+				name: author,
+			},
+			publisher: {
+				"@type": "Organization",
+				name: siteName,
+				logo: {
+					"@type": "ImageObject",
+					url: new URL("/logo.png", url).toString(),
+				},
+			},
+			datePublished: publishedTime,
+			dateModified: modifiedTime || publishedTime,
+			mainEntityOfPage: {
+				"@type": "WebPage",
+				"@id": canonicalUrl,
+			},
+			keywords: keywords.join(", "),
+		}
+		: {
+			"@context": "https://schema.org",
+			"@type": "WebSite",
+			name: siteName,
+			description: description,
+			url: canonicalUrl,
+		}
+)}></script>
